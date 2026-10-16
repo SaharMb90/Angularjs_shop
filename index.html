@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="zenithStore">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith Store — AngularJS E‑Commerce Demo</title>
+
+  <!-- Tailwind CSS (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Font Awesome (CDN) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- AngularJS (CDN) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.8.3/angular.min.js"></script>
+
+  <style>
+    /* ng-cloak: prevent flash of un-compiled template ({{ }}) before AngularJS boots */
+    [ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak {
+      display: none !important;
+    }
+
+    /* Simple line-clamp fallback for browsers without native support */
+    .line-clamp-2 {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    @supports (-webkit-line-clamp: 2) {
+      .line-clamp-2 { display: -webkit-box; }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900" ng-controller="MainController">
+
+  <!-- ===== Header ===== -->
+  <header class="bg-white shadow-sm sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+      <h1 class="text-2xl font-bold text-indigo-600 flex items-center gap-2">
+        <i class="fa-solid fa-bag-shopping"></i> Zenith Store
+      </h1>
+      <div class="relative">
+        <input type="text" ng-model="searchQuery" placeholder="Search products…"
+               class="border rounded-md px-4 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <i class="fa-solid fa-magnifying-glass absolute right-3 top-3 text-gray-400"></i>
+      </div>
+      <button ng-click="toggleCart()" class="relative text-indigo-600 hover:text-indigo-800">
+        <i class="fa-solid fa-cart-shopping text-2xl"></i>
+        <span ng-if="cartCount() > 0"
+              class="absolute -top-2 -right-2 bg-indigo-600 text-white text-xs rounded-full px-2 py-0.5">
+          {{ cartCount() }}
+        </span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ===== Hero ===== -->
+  <section class="bg-indigo-600 text-white">
+    <div class="max-w-7xl mx-auto px-4 py-16 text-center">
+      <h2 class="text-4xl font-extrabold mb-4">Everything you need, one store.</h2>
+      <p class="text-indigo-200 text-lg">Curated tech & lifestyle products at honest prices.</p>
+    </div>
+  </section>
+
+  <!-- ===== Filters ===== -->
+  <section class="max-w-7xl mx-auto px-4 py-8">
+    <div class="flex flex-wrap gap-2">
+      <button ng-repeat="cat in categories"
+              ng-click="selectedCategory = cat"
+              ng-class="selectedCategory === cat ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 hover:bg-indigo-50'"
+              class="px-4 py-2 rounded-full border text-sm font-medium transition">
+        {{ cat }}
+      </button>
+    </div>
+  </section>
+
+  <!-- ===== Product Grid ===== -->
+  <main class="max-w-7xl mx-auto px-4 pb-16" ng-cloak>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div ng-repeat="product in products | filter:searchQuery | filter:categoryFilter"
+           class="bg-white rounded-xl shadow-sm hover:shadow-lg transition overflow-hidden flex flex-col">
+
+        <div class="h-48 flex items-center justify-center bg-gray-100 text-6xl">
+          {{ product.emoji }}
+        </div>
+
+        <div class="p-5 flex flex-col flex-1">
+          <h3 class="font-semibold text-lg">{{ product.name }}</h3>
+          <p class="text-sm text-gray-500 mt-1 line-clamp-2">{{ product.description }}</p>
+
+          <div class="mt-3 flex items-center gap-1 text-yellow-500 text-sm">
+            <i class="fa-solid fa-star" ng-repeat="s in [].constructor(product.stars)"></i>
+            <span class="text-gray-400 ml-1 text-xs">({{ product.reviews }} reviews)</span>
+          </div>
+
+          <div class="mt-4 flex items-center justify-between mt-auto pt-4">
+            <span class="text-xl font-bold text-indigo-600">{{ product.price | currency }}</span>
+            <button ng-click="addToCart(product)"
+                    ng-disabled="product.stock === 0"
+                    class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition disabled:opacity-40 disabled:cursor-not-allowed">
+              <i class="fa-solid fa-cart-plus mr-1"></i> {{ product.stock === 0 ? 'Sold out' : 'Add to cart' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p ng-if="(products | filter:searchQuery | filter:categoryFilter).length === 0"
+       class="text-center text-gray-500 py-16 text-lg">
+      <i class="fa-solid fa-box-open mr-2"></i>No products match your search.
+    </p>
+  </main>
+
+  <!-- ===== Cart Drawer ===== -->
+  <div ng-if="cartOpen" class="fixed inset-0 z-50 flex" ng-cloak>
+    <div class="absolute inset-0 bg-black bg-opacity-40" ng-click="toggleCart()"></div>
+
+    <aside class="relative ml-auto bg-white w-full max-w-md h-full shadow-xl flex flex-col">
+      <div class="p-4 border-b flex items-center justify-between">
+        <h2 class="text-xl font-bold">Your Cart ({{ cartCount() }})</h2>
+        <button ng-click="toggleCart()" class="text-gray-500 hover:text-gray-800 text-xl">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-4 space-y-4">
+        <p ng-if="cart.length === 0" class="text-gray-500 text-center py-10">
+          <i class="fa-solid fa-cart-shopping text-3xl block mb-3"></i>Your cart is empty.
+        </p>
+
+        <div ng-repeat="item in cart" class="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+          <div>
+            <p class="font-medium">{{ item.name }}</p>
+            <p class="text-sm text-gray-500">{{ item.price | currency }} × {{ item.qty }}</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button ng-click="changeQty(item, -1)" class="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300">
+              <i class="fa-solid fa-minus text-xs"></i>
+            </button>
+            <button ng-click="changeQty(item, 1)" class="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300">
+              <i class="fa-solid fa-plus text-xs"></i>
+            </button>
+            <button ng-click="removeFromCart(item)" class="text-red-500 hover:text-red-700 ml-2">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 border-t" ng-if="cart.length > 0">
+        <div class="flex justify-between text-lg font-bold mb-4">
+          <span>Total</span>
+          <span>{{ cartTotal() | currency }}</span>
+        </div>
+        <button ng-click="checkout()"
+                class="w-full bg-indigo-600 text-white py-3 rounded-lg font-medium hover:bg-indigo-700 transition">
+          <i class="fa-solid fa-credit-card mr-2"></i>Checkout
+        </button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ===== Footer ===== -->
+  <footer class="bg-gray-900 text-gray-400 py-8">
+    <div class="max-w-7xl mx-auto px-4 text-center text-sm">
+      <p class="mb-2">
+        <i class="fa-brands fa-angular mr-1"></i>
+        Built with AngularJS 1.x, Tailwind CSS &amp; Font Awesome.
+      </p>
+      <p>&copy; {{ currentYear }} Zenith Store — demo project, no real orders are processed.</p>
+    </div>
+  </footer>
+
+  <!-- Scripts: correct load order = 1) module definition (app.js), 2) data constants, 3) controllers -->
+  <script src="js/app.js"></script>
+  <script src="js/products.data.js"></script>
+  <script src="js/controllers.js"></script>
+</body>
+</html>
